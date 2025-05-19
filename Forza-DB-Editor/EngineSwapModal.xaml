@@ -1,0 +1,35 @@
+﻿<Window x:Class="Forza_DB_Editor.EngineSwapModal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add Engine Swap" Height="500" Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize">
+    <StackPanel Margin="20">
+
+        <TextBlock Text="Select Car:" Margin="0,0,0,5"/>
+        <ComboBox x:Name="CarComboBox" DisplayMemberPath="FullName" SelectedItem="{Binding SelectedCar}" />
+
+        <TextBlock Text="Select Engine:" Margin="0,10,0,5"/>
+        <TextBox x:Name="EngineSearchBox"
+         Width="300"
+         Margin="0,10,0,5"
+         TextChanged="EngineSearchBox_TextChanged" 
+         HorizontalAlignment="Left"/>
+
+        <ListBox x:Name="EngineListBox"
+         DisplayMemberPath="EngineName"
+         Height="200"
+         SelectionMode="Single"
+         Margin="0,0,0,10"
+         SelectionChanged="EngineListBox_SelectionChanged"/>
+
+        <TextBlock Text="Price (CR, enter 0 for free):" Margin="0,10,0,5"/>
+        <TextBox x:Name="PriceTextBox" />
+
+        <Button Content="Submit"
+                Margin="0,20,0,0"
+                Width="100"
+                HorizontalAlignment="Left"
+                Click="Submit_Click" />
+    </StackPanel>
+</Window>

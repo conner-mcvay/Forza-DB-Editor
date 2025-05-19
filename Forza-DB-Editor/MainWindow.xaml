@@ -1,0 +1,147 @@
+﻿<Window x:Class="Forza_DB_Editor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQLite Editor" Height="600" Width="800">
+    <DockPanel>
+        <!-- Menu Bar at the top -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="Open .slt File..." Click="SelectFile_Click"/>
+                <Separator />
+                <MenuItem Header="Exit" Click="Exit_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Main Content Area -->
+        <TabControl x:Name="MainTabControl" SelectionChanged="MainTabControl_SelectionChanged">
+            <TabItem Header="Car" x:Name="CarTab">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="3*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBox x:Name="CarSearchBox"
+                                 Grid.Row="0"
+                                 Width="200"
+                                 Margin="0 0 0 10"
+                                 Text="Search cars..."
+                                 TextChanged="CarSearchBox_TextChanged"
+                                 HorizontalAlignment="Left"/>
+
+                        <ListBox x:Name="CarListBox"
+                                 Grid.Row="1"
+                                 DisplayMemberPath="FullName"
+                                 SelectionChanged="CarListBox_SelectionChanged"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                    </Grid>
+
+                    <!-- RIGHT COLUMN -->
+                    <Grid Grid.Column="1" Margin="20,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Car Details Panel -->
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Car Details" FontSize="16" FontWeight="Bold" Margin="0 0 0 10" />
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Year: " FontWeight="Bold" />
+                                <TextBlock x:Name="YearText" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Make: " FontWeight="Bold" />
+                                <TextBlock x:Name="MakeText" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Make: " FontWeight="Bold" />
+                                <TextBlock x:Name="ModelText" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Front Wheel Diameter (in): " FontWeight="Bold" />
+                                <TextBlock x:Name="FrontWheelDiameterText" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Front Tire Aspect: " FontWeight="Bold" />
+                                <TextBlock x:Name="FrontTireAspectText" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Front Track Width: " FontWeight="Bold" />
+                                <TextBlock x:Name="ModelFrontTrackOuter" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Rear Wheel Diameter (in): " FontWeight="Bold" />
+                                <TextBlock x:Name="RearWheelDiameterText" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Rear Tire Aspect: " FontWeight="Bold" />
+                                <TextBlock x:Name="RearTireAspectText" />
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Rear Track Width: " FontWeight="Bold" />
+                                <TextBlock x:Name="ModelRearTrackOuter" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- View Button -->
+                        <Button x:Name="ViewEngineSwapsButton" Grid.Row="1"
+            Content="View/Edit Engine Swaps"
+            Width="150"
+            Margin="0,10,0,10"
+            Click="ViewEngineSwaps_Click"
+            HorizontalAlignment="Left"/>
+
+                        <!-- Engine Swaps Panel -->
+                        <StackPanel x:Name="EngineSwapsPanel"
+            Grid.Row="2"
+            Visibility="Collapsed">
+                            <DataGrid x:Name="EngineSwapsGrid"
+              AutoGenerateColumns="False"
+              CanUserAddRows="False"
+              Height="200"
+              Margin="0,0,0,10">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Engine Name" Binding="{Binding EngineName}" Width="*" />
+                                    <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="Auto" />
+                                    <DataGridCheckBoxColumn Header="Is Stock" Binding="{Binding IsStock}" Width="Auto" />
+                                    <DataGridTextColumn Header="Price" Binding="{Binding Price}" Width="Auto" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <Button x:Name="AddEngineSwapButton"
+            Content="Add New Engine Swap"
+            Width="180"
+            Click="AddEngineSwap_Click"
+            HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Engine" x:Name="EngineTab">
+                <TextBlock Text="Engine tab" Margin="10" />
+            </TabItem>
+
+            <TabItem Header="Wheels">
+                <TextBlock Text="Wheels tab" Margin="10" />
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>
