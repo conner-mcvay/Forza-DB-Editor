@@ -216,7 +216,7 @@ namespace Forza_DB_Editor
             engineSwapsLoaded = true;
         }
 
-        private void RefreshEngineSwapsForCar(int carId)
+        public void RefreshEngineSwapsForCar(int carId)
         {
             var filteredSwaps = allEngineSwaps
                 .Where(es => es.CarID == carId)
@@ -273,11 +273,19 @@ namespace Forza_DB_Editor
                 Owner = this,
                 CarList = carList,
                 SelectedCar = selectedCarInList,
-                AllEngineSwaps = allEngineSwaps
+                AllEngineSwaps = allEngineSwaps,
+                Connection = currentConnection
             };
 
-            modal.ShowDialog();
+            bool? result = modal.ShowDialog();
 
+            if (result == true && modal.InsertedCarID.HasValue)
+            {
+                LoadEngineSwaps(currentConnection);
+                RefreshEngineSwapsForCar(modal.InsertedCarID.Value);
+                EngineSwapsPanel.Visibility = Visibility.Visible;
+                ViewEngineSwapsButton.Content = "Hide Engine Swaps";
+            }
         }
 
         private void DebugForceShow_Click(object sender, RoutedEventArgs e)

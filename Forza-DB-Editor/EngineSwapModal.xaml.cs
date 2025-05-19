@@ -1,5 +1,13 @@
-﻿using System.Windows;
+﻿using Microsoft.Win32;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SQLite;
+using System.Diagnostics;
+using System.IO;
+using System.Windows;
 using System.Windows.Controls;
+
 
 namespace Forza_DB_Editor
 {
@@ -10,6 +18,8 @@ namespace Forza_DB_Editor
         public List<EngineSwap> AllEngineSwaps { get; set; }
         private List<EngineSwap> uniqueEngines;
         private bool isProgrammaticallySettingText = false;
+        public SQLiteConnection Connection { get; set; }
+        public int? InsertedCarID { get; private set; }
         public EngineSwapModal()
         {
             InitializeComponent();
@@ -84,9 +94,54 @@ namespace Forza_DB_Editor
 
         private void Submit_Click(object sender, RoutedEventArgs e)
         {
-            // Placeholder logic
-            MessageBox.Show("Submit clicked — SQL functionality coming soon.");
-            this.DialogResult = true; // or just: this.Close();
+            if (CarComboBox.SelectedItem is not Car selectedCar ||
+                EngineListBox.SelectedItem is not EngineSwap selectedEngine)
+            {
+                MessageBox.Show("Please select both a car and an engine.", "Missing Info", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!int.TryParse(PriceTextBox.Text.Trim(), out int price))
+            {
+                MessageBox.Show("Please enter a valid price.", "Invalid Price", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                if (Connection.State != ConnectionState.Open)
+                    Connection.Open();
+
+                // use `Connection` instead of creating a new one
+                string getIdSql = File.ReadAllText("Queries/GetNextEngineSwapID.sql");
+                using var getIdCmd = new SQLiteCommand(getIdSql, Connection);
+                getIdCmd.Parameters.AddWithValue("@CarID", selectedCar.Id);
+                var upgradeEngineId = Convert.ToInt32(getIdCmd.ExecuteScalar());
+
+                // 2. Insert new engine swap
+                string insertSql = File.ReadAllText("Queries/CreateEngineSwap.sql");
+                using var insertCmd = new SQLiteCommand(insertSql, Connection);
+                insertCmd.Parameters.AddWithValue("@UpgradeEngineID", upgradeEngineId);
+                insertCmd.Parameters.AddWithValue("@CarID", selectedCar.Id);
+                insertCmd.Parameters.AddWithValue("@Level", selectedEngine.Level);
+                insertCmd.Parameters.AddWithValue("@EngineID", selectedEngine.EngineID);
+                insertCmd.Parameters.AddWithValue("@IsStock", 0);
+                insertCmd.Parameters.AddWithValue("@ManufacturerID", 0); // update if needed
+                insertCmd.Parameters.AddWithValue("@Price", price);
+
+                insertCmd.ExecuteNonQuery();
+
+                MessageBox.Show("Engine swap successfully added!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+
+
+                InsertedCarID = selectedCar.Id;
+                this.DialogResult = true;
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to add engine swap: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void EngineListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
