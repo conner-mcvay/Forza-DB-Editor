@@ -117,13 +117,20 @@ namespace Forza_DB_Editor
                 using var getIdCmd = new SQLiteCommand(getIdSql, Connection);
                 getIdCmd.Parameters.AddWithValue("@CarID", selectedCar.Id);
                 var upgradeEngineId = Convert.ToInt32(getIdCmd.ExecuteScalar());
+                // get level
+                string getLevelSql = File.ReadAllText("Queries/GetNextEngineLevel.sql");
+
+                using var getLevelCmd = new SQLiteCommand(getLevelSql, Connection);
+                getLevelCmd.Parameters.AddWithValue("@CarID", selectedCar.Id);
+
+                int nextLevel = Convert.ToInt32(getLevelCmd.ExecuteScalar());
 
                 // 2. Insert new engine swap
                 string insertSql = File.ReadAllText("Queries/CreateEngineSwap.sql");
                 using var insertCmd = new SQLiteCommand(insertSql, Connection);
                 insertCmd.Parameters.AddWithValue("@UpgradeEngineID", upgradeEngineId);
                 insertCmd.Parameters.AddWithValue("@CarID", selectedCar.Id);
-                insertCmd.Parameters.AddWithValue("@Level", selectedEngine.Level);
+                insertCmd.Parameters.AddWithValue("@Level", nextLevel);
                 insertCmd.Parameters.AddWithValue("@EngineID", selectedEngine.EngineID);
                 insertCmd.Parameters.AddWithValue("@IsStock", 0);
                 insertCmd.Parameters.AddWithValue("@ManufacturerID", 0); // update if needed
