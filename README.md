@@ -1,3 +1,4 @@
+![Image](https://github.com/user-attachments/assets/2a5a7867-2b02-4421-89cc-034657ef7ac7)
 # Forza Database Editor
 An intuitive UI to automate gamedb (or patchdb) file editing for Xbox 360 era Forza games.
 
@@ -16,3 +17,5 @@ An intuitive UI to automate gamedb (or patchdb) file editing for Xbox 360 era Fo
 
 ### Contributing
 This is a small project that I'm working on in my free time and would love for anyone to contribute, feel free to open PRs as long as they have some sort of explanation on what it does.
+
+![Image](https://github.com/user-attachments/assets/988eef45-fb1a-4d6d-b2c4-d97d2cffce7d)
