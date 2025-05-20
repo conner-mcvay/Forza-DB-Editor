@@ -30,11 +30,11 @@ namespace Forza_DB_Editor
             InitializeComponent();
             config = AppConfig.Load();
 
-            /*
+            
             MessageBox.Show("Forza DB Editor will back up your selected database file before making any edits, but you are " +
                 "STRONGLY ENCOURAGED to create an additional backup on your own before making any edits. Invalid db files WILL BREAK " +
-                "THE GAME.", "Caution", MessageBoxButton.OK, MessageBoxImage.Warning);
-            */
+                "THE GAME AND POSSIBLY CORRUPT YOUR PROFILE.", "Caution", MessageBoxButton.OK, MessageBoxImage.Warning);
+            
 
             if (string.IsNullOrEmpty(config.LastFilePath) || !File.Exists(config.LastFilePath))
             {
@@ -43,6 +43,8 @@ namespace Forza_DB_Editor
             else
             {
                 OpenDatabase(config.LastFilePath); // no popup
+                BackupDatabaseFile(config.LastFilePath); // no popup
+
             }
 
             // Try to load saved file
@@ -53,6 +55,7 @@ namespace Forza_DB_Editor
             else
             {
                 OpenDatabase(config.LastFilePath);
+                BackupDatabaseFile(config.LastFilePath); // no popup
             }
         }
 
@@ -95,6 +98,7 @@ namespace Forza_DB_Editor
 
             if (dialog.ShowDialog() == true)
             {
+                BackupDatabaseFile(dialog.FileName);
                 OpenDatabase(dialog.FileName, showMessage: true);
             }
         }
@@ -298,6 +302,30 @@ namespace Forza_DB_Editor
     };
 
             EngineSwapsGrid.Items.Refresh();
+        }
+
+        private void BackupDatabaseFile(string originalPath)
+        {
+            try
+            {
+                string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+                string backupDir = Path.Combine(exeDir, "backup");
+
+                if (!Directory.Exists(backupDir))
+                    Directory.CreateDirectory(backupDir);
+
+                string fileName = Path.GetFileNameWithoutExtension(originalPath);
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string destPath = Path.Combine(backupDir, $"{fileName}_{timestamp}.slt");
+
+                File.Copy(originalPath, destPath, overwrite: true);
+
+                System.Diagnostics.Debug.WriteLine($"Backup created at: {destPath}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to create backup: {ex.Message}", "Backup Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
     }
 }

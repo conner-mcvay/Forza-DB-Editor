@@ -160,7 +160,5 @@ namespace Forza_DB_Editor
                 isProgrammaticallySettingText = false;
             }
         }
-
-
     }
 }
