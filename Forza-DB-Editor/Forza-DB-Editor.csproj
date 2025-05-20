@@ -36,7 +36,13 @@
     <None Update="Queries\Engine_SingleTurbo_CreateNewSingleTurboUpgrade.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Queries\Engine_SingleTurbo_GetNextID.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Queries\Engine_SingleTurbo_GetNextLevel.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Queries\Engine_SingleTurbo_GetSingleTurboUpgrades.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -175,7 +175,44 @@
                             <TextBlock Text="Engine Name: " FontWeight="Bold" />
                             <TextBlock x:Name="EngineNameText" />
                         </StackPanel>
+
+                        <Button x:Name="ViewSingleTurboButton"
+        Content="View/Edit Single Turbo Upgrades"
+        Width="200"
+        Margin="0,10,0,10"
+        Click="ViewSingleTurbo_Click"
+        HorizontalAlignment="Left"/>
+
+                        <StackPanel x:Name="SingleTurboPanel" Visibility="Collapsed">
+                            <DataGrid x:Name="SingleTurboGrid"
+              AutoGenerateColumns="False"
+              CanUserAddRows="False"
+              Height="200"
+              Margin="0,0,0,10">
+                                
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Min Scale" Binding="{Binding MinScale}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Power Min Scale" Binding="{Binding PowerMinScale}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Max Scale" Binding="{Binding MaxScale}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Power Max Scale" Binding="{Binding PowerMaxScale}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Rob Scale" Binding="{Binding RobScale}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Price" Binding="{Binding Price}" Width="Auto"/>
+                                </DataGrid.Columns>
+                                
+                                
+                            </DataGrid>
+                            <Button x:Name="AddSingleTurboButton"
+Content="Create New Single Turbo Upgrade"
+Width="220"
+HorizontalAlignment="Left"
+Visibility="Collapsed"
+Click="AddSingleTurbo_Click" />
+                        </StackPanel>
+
                     </StackPanel>
+                    
+                    
                 </Grid>
             </TabItem>
 

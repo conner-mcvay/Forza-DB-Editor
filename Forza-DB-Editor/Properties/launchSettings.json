@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Forza-DB-Editor": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "env": "prod"
+      }
+    }
+  }
+}

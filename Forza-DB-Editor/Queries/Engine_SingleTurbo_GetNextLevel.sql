@@ -1,2 +1,3 @@
 ﻿SELECT MAX(Level) + 1 'NextLevel', ManufacturerID
-	WHERE EngineID = @EngineID
+FROM List_UpgradeEngineTurboSingle
+WHERE EngineID = @EngineID

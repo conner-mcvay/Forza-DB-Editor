@@ -1,0 +1,34 @@
+﻿<Window x:Class="Forza_DB_Editor.TurboUpgradeModal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Forza_DB_Editor"
+        mc:Ignorable="d"
+        Title="Add Turbo Upgrade" Height="450" Width="800"
+        Loaded="Window_Loaded">
+    <StackPanel Margin="20">
+        <TextBlock Text="Select Engine:" />
+        <ComboBox x:Name="EngineComboBox"
+          DisplayMemberPath="EngineName"
+          SelectedItem="{Binding SelectedEngine}"
+          Margin="0,0,0,10"/>
+
+        <TextBlock Text="Min Scale (most are ~0.9 stock):" />
+        <TextBox x:Name="MinScaleBox"/>
+
+        <TextBlock Text="Power Min Scale (all are 10 stock):" />
+        <TextBox x:Name="PowerMinScaleBox"/>
+
+        <TextBlock Text="Power Max Scale (ranges from ~20 to ~300 stock, set this number high for big HP):" />
+        <TextBox x:Name="PowerMaxScaleBox"/>
+
+        <TextBlock Text="Rob Scale (ranges from 0.8333 to 1.5738 stock, unknown what this does):" />
+        <TextBox x:Name="RobScaleBox"/>
+
+        <TextBlock Text="Price (CR, 0 for free):" />
+        <TextBox x:Name="PriceBox"/>
+
+        <Button Content="Submit" Width="100" Margin="0,20,0,0" Click="Submit_Click"/>
+    </StackPanel>
+</Window>

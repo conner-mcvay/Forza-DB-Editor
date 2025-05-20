@@ -7,12 +7,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using static Forza_DB_Editor.TurboUpgradeModal;
 
 namespace Forza_DB_Editor
 {
     public partial class MainWindow : Window
     {
-
+        bool dev = Environment.GetEnvironmentVariable("env") == "dev"; 
         //----------------//
         //  constructors  // 
         //----------------//
@@ -22,21 +23,23 @@ namespace Forza_DB_Editor
         private List<Car> carList = new();
         private List<EngineSwap> allEngineSwaps = new();
         private List<Engine> engineList = new();
-
-
+        private List<Turbo> singleTurboUpgrades = new();
+        
         private bool carsLoaded = false;
         private bool engineSwapsLoaded = false;
+        private bool singleTurboLoaded = false;
 
         public MainWindow()
         {
             InitializeComponent();
             config = AppConfig.Load();
 
-            
-            MessageBox.Show("Forza DB Editor will back up your selected database file before making any edits, but you are " +
-                "STRONGLY ENCOURAGED to create an additional backup on your own before making any edits. Invalid db files WILL BREAK " +
-                "THE GAME AND POSSIBLY CORRUPT YOUR PROFILE.", "Caution", MessageBoxButton.OK, MessageBoxImage.Warning);
-            
+            if (!dev)
+            {
+                MessageBox.Show("Forza DB Editor will back up your selected database file before making any edits, but you are " +
+                    "STRONGLY ENCOURAGED to create an additional backup on your own before making any edits. Invalid db files WILL BREAK " +
+                    "THE GAME AND POSSIBLY CORRUPT YOUR PROFILE.", "Caution", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
 
             if (string.IsNullOrEmpty(config.LastFilePath) || !File.Exists(config.LastFilePath))
             {
@@ -46,7 +49,7 @@ namespace Forza_DB_Editor
             {
                 OpenDatabase(config.LastFilePath); // no popup
                 BackupDatabaseFile(config.LastFilePath); // no popup
-
+                
             }
 
             // Try to load saved file
@@ -58,6 +61,7 @@ namespace Forza_DB_Editor
             {
                 OpenDatabase(config.LastFilePath);
                 BackupDatabaseFile(config.LastFilePath); // no popup
+
             }
         }
 
@@ -118,8 +122,10 @@ namespace Forza_DB_Editor
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 string destPath = Path.Combine(backupDir, $"{fileName}_{timestamp}.slt");
 
-                File.Copy(originalPath, destPath, overwrite: true);
-
+                if (!dev)
+                {
+                    File.Copy(originalPath, destPath, overwrite: true);
+                }
                 System.Diagnostics.Debug.WriteLine($"Backup created at: {destPath}");
             }
             catch (Exception ex)
@@ -192,7 +198,7 @@ namespace Forza_DB_Editor
             if (EngineTab.IsSelected && engineList.Count == 0)
             {
                 LoadEngines(currentConnection);
-                EngineListBox.ItemsSource = engineList;
+                EngineListBox.ItemsSource = engineList.OrderBy(c => c.EngineName).ToList();
             }
         }
 
@@ -384,6 +390,13 @@ namespace Forza_DB_Editor
 
         private void EngineListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            // Collapse turbo view if open
+            if (SingleTurboPanel.Visibility == Visibility.Visible)
+            {
+                SingleTurboPanel.Visibility = Visibility.Collapsed;
+                ViewSingleTurboButton.Content = "View/Edit Single Turbo Upgrades";
+            }
+
             if (EngineListBox.SelectedItem is not Engine selected)
                 return;
 
@@ -391,5 +404,83 @@ namespace Forza_DB_Editor
             EngineNameText.Text = selected.EngineName;
         }
 
+        private void LoadSingleTurboUpgrades(int engineId)
+        {
+            singleTurboUpgrades.Clear();
+
+            string sql = LoadSqlQuery("Queries/Engine_SingleTurbo_GetSingleTurboUpgrades.sql");
+
+            using var cmd = new SQLiteCommand(sql, currentConnection);
+            cmd.Parameters.AddWithValue("@EngineID", engineId);
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                singleTurboUpgrades.Add(new Turbo
+                {
+                    EngineID = engineId,
+                    ManufacturerID = reader.GetInt32(1),
+                    Level = reader.GetInt32(2),
+                    Price = reader.GetInt32(3),
+                    MinScale = reader.GetDouble(4),
+                    PowerMinScale = reader.GetDouble(5),
+                    MaxScale = reader.GetDouble(6),
+                    PowerMaxScale = reader.GetDouble(7),
+                    RobScale = reader.GetDouble(8)
+                });
+            }
+
+            SingleTurboGrid.ItemsSource = null;
+            SingleTurboGrid.Items.Clear(); // optional, defensive
+            SingleTurboGrid.ItemsSource = singleTurboUpgrades;
+            SingleTurboGrid.Items.Refresh();
+        }
+
+        private void ViewSingleTurbo_Click(object sender, RoutedEventArgs e)
+        {
+            if (EngineListBox.SelectedItem is not Engine selectedEngine)
+            {
+                MessageBox.Show("Please select an engine first.", "No Engine Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Toggle logic
+            if (SingleTurboPanel.Visibility == Visibility.Visible)
+            {
+                SingleTurboPanel.Visibility = Visibility.Collapsed;
+                AddSingleTurboButton.Visibility = Visibility.Collapsed;
+                ViewSingleTurboButton.Content = "View/Edit Single Turbo Upgrades";
+                return;
+            }
+
+            // Load and show
+            LoadSingleTurboUpgrades(selectedEngine.EngineID);
+            SingleTurboPanel.Visibility = Visibility.Visible;
+            AddSingleTurboButton.Visibility = Visibility.Visible;
+            ViewSingleTurboButton.Content = "Hide Single Turbo Upgrades";
+        }
+
+        private void AddSingleTurbo_Click(object sender, RoutedEventArgs e)
+        {
+            if (EngineListBox.SelectedItem is not Engine selectedEngine)
+                return;
+
+            var modal = new TurboUpgradeModal
+            {
+                Owner = this,
+                Connection = currentConnection,
+                EngineList = engineList,
+                SelectedEngine = (Engine)EngineListBox.SelectedItem,
+                Mode = TurboUpgradeType.Single // or Twin
+            };
+
+            bool? result = modal.ShowDialog();
+
+            if (result == true && modal.InsertSucceeded)
+            {
+                LoadSingleTurboUpgrades(modal.SelectedEngine.EngineID);
+            }
+        }
+        
     }
 }
