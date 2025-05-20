@@ -102,7 +102,14 @@ namespace Forza_DB_Editor
                 return;
             }
 
-            int nextLevel = reader.GetInt32(0);
+            string selectedLevelText = ((ComboBoxItem)LevelComboBox.SelectedItem).Content.ToString();
+            int nextLevel = selectedLevelText switch
+            {
+                "Street" => 1,
+                "Sport" => 2,
+                "Race" => 3,
+                _ => throw new InvalidOperationException("Unknown turbo level")
+            };
             int manufacturerId = reader.GetInt32(1);
 
             // Insert new turbo
@@ -124,8 +131,9 @@ namespace Forza_DB_Editor
             InsertSucceeded = true;
             this.DialogResult = true;
 
-            Debug.WriteLine("engine is" + engine.EngineID);
-            Debug.WriteLine("id is" + nextId);
+            Debug.WriteLine("engine is " + engine.EngineID);
+            Debug.WriteLine("id is " + nextId);
+            Debug.WriteLine("level is " + nextLevel);
 
             MessageBox.Show("Turbo upgrade added successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 

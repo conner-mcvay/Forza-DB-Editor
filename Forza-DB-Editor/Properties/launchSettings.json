@@ -3,7 +3,7 @@
     "Forza-DB-Editor": {
       "commandName": "Project",
       "environmentVariables": {
-        "env": "prod"
+        "env": "dev"
       }
     }
   }
