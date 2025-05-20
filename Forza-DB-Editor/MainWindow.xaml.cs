@@ -12,18 +12,20 @@ namespace Forza_DB_Editor
 {
     public partial class MainWindow : Window
     {
+
+        //----------------//
+        //  constructors  // 
+        //----------------//
         private AppConfig config;
-        private string currentFilePath;
         private SQLiteConnection currentConnection;
         
         private List<Car> carList = new();
         private List<EngineSwap> allEngineSwaps = new();
+        private List<Engine> engineList = new();
+
+
         private bool carsLoaded = false;
         private bool engineSwapsLoaded = false;
-        private void Exit_Click(object sender, RoutedEventArgs e)
-        {
-            Application.Current.Shutdown();
-        }
 
         public MainWindow()
         {
@@ -59,6 +61,94 @@ namespace Forza_DB_Editor
             }
         }
 
+        //------------------// 
+        //  util functions  //
+        //------------------//
+        private void PromptToOpenFile()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "SQLite files (*.slt)|*.slt|All files (*.*)|*.*"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                BackupDatabaseFile(dialog.FileName);
+                OpenDatabase(dialog.FileName, showMessage: true);
+            }
+        }
+
+        private void OpenDatabase(string filePath, bool showMessage = false)
+        {
+            try
+            {
+                currentConnection = new SQLiteConnection($"Data Source={filePath};Version=3;");
+                currentConnection.Open();
+
+                using var cmd = new SQLiteCommand("SELECT MIN(Id) FROM Data_Car;", currentConnection);
+                var result = cmd.ExecuteScalar();
+
+                config.LastFilePath = filePath;
+                config.Save();
+
+                this.Title = $"Forza DB Editor - {filePath}";
+                if (showMessage)
+                {
+                    MessageBox.Show("Database successfully opened", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening database: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                PromptToOpenFile();
+            }
+        }
+
+        private void BackupDatabaseFile(string originalPath)
+        {
+            try
+            {
+                string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+                string backupDir = Path.Combine(exeDir, "backup");
+
+                if (!Directory.Exists(backupDir))
+                    Directory.CreateDirectory(backupDir);
+
+                string fileName = Path.GetFileNameWithoutExtension(originalPath);
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string destPath = Path.Combine(backupDir, $"{fileName}_{timestamp}.slt");
+
+                File.Copy(originalPath, destPath, overwrite: true);
+
+                System.Diagnostics.Debug.WriteLine($"Backup created at: {destPath}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to create backup: {ex.Message}", "Backup Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void SelectFile_Click(object sender, RoutedEventArgs e)
+        {
+            PromptToOpenFile();
+        }
+
+        private string LoadSqlQuery(string relativePath)
+        {
+            string basePath = AppDomain.CurrentDomain.BaseDirectory;
+            string fullPath = Path.Combine(basePath, relativePath);
+            return File.ReadAllText(fullPath);
+        }
+
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
+
+        //---------------------//
+        //  Car tab functions  //
+        //---------------------//
+
         private void LoadCars(SQLiteConnection conn)
         {
             carList.Clear();
@@ -89,51 +179,6 @@ namespace Forza_DB_Editor
             CarListBox.ItemsSource = carList.OrderBy(c => c.FullName).ToList();
         }
 
-        private void PromptToOpenFile()
-        {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "SQLite files (*.slt)|*.slt|All files (*.*)|*.*"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                BackupDatabaseFile(dialog.FileName);
-                OpenDatabase(dialog.FileName, showMessage: true);
-            }
-        }
-
-        private void OpenDatabase(string filePath, bool showMessage = false)
-        {
-            try
-            {
-                currentConnection = new SQLiteConnection($"Data Source={filePath};Version=3;");
-                currentConnection.Open();
-
-                using var cmd = new SQLiteCommand("SELECT MIN(Id) FROM Data_Car;", currentConnection);
-                var result = cmd.ExecuteScalar();
-
-                currentFilePath = filePath;
-                config.LastFilePath = filePath;
-                config.Save();
-
-                this.Title = $"Forza DB Editor - {filePath}";
-                if (showMessage)
-                {
-                    MessageBox.Show("Database successfully opened", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error opening database: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                PromptToOpenFile();
-            }
-        }
-
-        private void SelectFile_Click(object sender, RoutedEventArgs e)
-        {
-            PromptToOpenFile();
-        }
 
         private void MainTabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
@@ -142,6 +187,12 @@ namespace Forza_DB_Editor
                 LoadCars(currentConnection);
                 LoadEngineSwaps(currentConnection);
                 carsLoaded = true;
+            }
+
+            if (EngineTab.IsSelected && engineList.Count == 0)
+            {
+                LoadEngines(currentConnection);
+                EngineListBox.ItemsSource = engineList;
             }
         }
 
@@ -180,12 +231,6 @@ namespace Forza_DB_Editor
             CarListBox.ItemsSource = filtered;
         }
 
-        private string LoadSqlQuery(string relativePath)
-        {
-            string basePath = AppDomain.CurrentDomain.BaseDirectory;
-            string fullPath = Path.Combine(basePath, relativePath);
-            return File.ReadAllText(fullPath);
-        }
 
         private void LoadEngineSwaps(SQLiteConnection conn)
         {
@@ -292,40 +337,59 @@ namespace Forza_DB_Editor
             }
         }
 
-        private void DebugForceShow_Click(object sender, RoutedEventArgs e)
+        //-------------------------//
+        //  Engines tab functions  // 
+        //-------------------------//
+
+        private void LoadEngines(SQLiteConnection conn)
         {
-            EngineSwapsPanel.Visibility = Visibility.Visible;
+            engineList.Clear();
 
-            EngineSwapsGrid.ItemsSource = new List<object>
-    {
-        new { EngineName = "Test Engine", Level = 3, IsStock = false, Price = 5000 }
-    };
+            string query = LoadSqlQuery("Queries/GetEngineSwaps.sql");
 
-            EngineSwapsGrid.Items.Refresh();
-        }
+            using var cmd = new SQLiteCommand(query, conn);
+            using var reader = cmd.ExecuteReader();
 
-        private void BackupDatabaseFile(string originalPath)
-        {
-            try
+            var seen = new HashSet<int>();
+
+            while (reader.Read())
             {
-                string exeDir = AppDomain.CurrentDomain.BaseDirectory;
-                string backupDir = Path.Combine(exeDir, "backup");
+                int engineId = reader.GetInt32(3);
+                string engineName = reader.GetString(4);
 
-                if (!Directory.Exists(backupDir))
-                    Directory.CreateDirectory(backupDir);
+                if (!seen.Contains(engineId))
+                {
+                    engineList.Add(new Engine
+                    {
+                        EngineID = engineId,
+                        EngineName = engineName
+                    });
 
-                string fileName = Path.GetFileNameWithoutExtension(originalPath);
-                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                string destPath = Path.Combine(backupDir, $"{fileName}_{timestamp}.slt");
-
-                File.Copy(originalPath, destPath, overwrite: true);
-
-                System.Diagnostics.Debug.WriteLine($"Backup created at: {destPath}");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to create backup: {ex.Message}", "Backup Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    seen.Add(engineId);
+                }
             }
         }
+
+        private void EngineSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string search = EngineSearchBox.Text.Trim();
+
+            var filtered = engineList
+                .Where(e => e.EngineName.Contains(search, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(e => e.EngineName)
+                .ToList();
+
+            EngineListBox.ItemsSource = filtered;
+        }
+
+        private void EngineListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (EngineListBox.SelectedItem is not Engine selected)
+                return;
+
+            EngineIDText.Text = selected.EngineID.ToString();
+            EngineNameText.Text = selected.EngineName;
+        }
+
     }
 }

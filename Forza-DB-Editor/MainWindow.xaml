@@ -136,7 +136,47 @@
             </TabItem>
 
             <TabItem Header="Engine" x:Name="EngineTab">
-                <TextBlock Text="Engine tab" Margin="10" />
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="3*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left side: search + engine list -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBox x:Name="EngineSearchBox"
+                     Grid.Row="0"
+                     Width="200"
+                     Margin="0 0 0 10"
+                     TextChanged="EngineSearchBox_TextChanged"/>
+
+                        <ListBox x:Name="EngineListBox"
+                     Grid.Row="1"
+                     DisplayMemberPath="EngineName"
+                     SelectionChanged="EngineListBox_SelectionChanged"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                    </Grid>
+
+                    <!-- Right side: engine details -->
+                    <StackPanel Grid.Column="1" Margin="20,0,0,0">
+                        <TextBlock Text="Engine Details" FontSize="16" FontWeight="Bold" Margin="0 0 0 10" />
+
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Engine ID: " FontWeight="Bold" />
+                            <TextBlock x:Name="EngineIDText" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Engine Name: " FontWeight="Bold" />
+                            <TextBlock x:Name="EngineNameText" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
             </TabItem>
 
             <TabItem Header="Wheels">
