@@ -153,7 +153,7 @@ namespace Forza_DB_Editor
         {
             carList.Clear();
 
-            string query = LoadSqlQuery("Queries/GetCars.sql");
+            string query = LoadSqlQuery("Queries/Car_GetCars.sql");
 
             using var cmd = new SQLiteCommand(query, conn);
             using var reader = cmd.ExecuteReader();
@@ -236,7 +236,7 @@ namespace Forza_DB_Editor
         {
             allEngineSwaps.Clear();
 
-            string query = LoadSqlQuery("Queries/GetEngineSwaps.sql");
+            string query = LoadSqlQuery("Queries/Car_GetEngineSwaps.sql");
 
             using var cmd = new SQLiteCommand(query, conn);
             using var reader = cmd.ExecuteReader();
@@ -345,7 +345,7 @@ namespace Forza_DB_Editor
         {
             engineList.Clear();
 
-            string query = LoadSqlQuery("Queries/GetEngineSwaps.sql");
+            string query = LoadSqlQuery("Queries/Engine_GetEngines.sql"); 
 
             using var cmd = new SQLiteCommand(query, conn);
             using var reader = cmd.ExecuteReader();
@@ -354,8 +354,8 @@ namespace Forza_DB_Editor
 
             while (reader.Read())
             {
-                int engineId = reader.GetInt32(3);
-                string engineName = reader.GetString(4);
+                int engineId = reader.GetInt32(0);
+                string engineName = reader.GetString(1);
 
                 if (!seen.Contains(engineId))
                 {

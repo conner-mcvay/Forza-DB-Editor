@@ -113,12 +113,12 @@ namespace Forza_DB_Editor
                     Connection.Open();
 
                 // use `Connection` instead of creating a new one
-                string getIdSql = File.ReadAllText("Queries/GetNextEngineSwapID.sql");
+                string getIdSql = File.ReadAllText("Queries/EngineSwap_GetNextEngineSwapID.sql");
                 using var getIdCmd = new SQLiteCommand(getIdSql, Connection);
                 getIdCmd.Parameters.AddWithValue("@CarID", selectedCar.Id);
                 var upgradeEngineId = Convert.ToInt32(getIdCmd.ExecuteScalar());
                 // get level
-                string getLevelSql = File.ReadAllText("Queries/GetNextEngineLevel.sql");
+                string getLevelSql = File.ReadAllText("Queries/EngineSwap_GetNextEngineLevel.sql");
 
                 using var getLevelCmd = new SQLiteCommand(getLevelSql, Connection);
                 getLevelCmd.Parameters.AddWithValue("@CarID", selectedCar.Id);
@@ -126,7 +126,7 @@ namespace Forza_DB_Editor
                 int nextLevel = Convert.ToInt32(getLevelCmd.ExecuteScalar());
 
                 // 2. Insert new engine swap
-                string insertSql = File.ReadAllText("Queries/CreateEngineSwap.sql");
+                string insertSql = File.ReadAllText("Queries/EngineSwap_CreateEngineSwap.sql");
                 using var insertCmd = new SQLiteCommand(insertSql, Connection);
                 insertCmd.Parameters.AddWithValue("@UpgradeEngineID", upgradeEngineId);
                 insertCmd.Parameters.AddWithValue("@CarID", selectedCar.Id);
