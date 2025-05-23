@@ -30,10 +30,13 @@
         <TextBlock Text="Power Min Scale (all are 10 stock):" />
         <TextBox x:Name="PowerMinScaleBox"/>
 
+        <TextBlock Text="Max Scale (ranges from 0 to 3 stock):" />
+        <TextBox x:Name="MaxScaleBox"/>
+
         <TextBlock Text="Power Max Scale (ranges from ~20 to ~300 stock, set this number high for big HP):" />
         <TextBox x:Name="PowerMaxScaleBox"/>
 
-        <TextBlock Text="Rob Scale (ranges from 0.8333 to 1.5738 stock, unknown what this does):" />
+        <TextBlock Text="Rob Scale (ranges from 0.8333 to 1.5738 stock, higher levels seem to have lower values):" />
         <TextBox x:Name="RobScaleBox"/>
 
         <TextBlock Text="Price (CR, 0 for free):" />

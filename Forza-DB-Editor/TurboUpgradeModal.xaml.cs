@@ -54,6 +54,13 @@ namespace Forza_DB_Editor
             _ => throw new InvalidOperationException("Unsupported turbo mode")
         };
 
+        public string UpdateQuery => Mode switch
+        {
+            TurboUpgradeType.Single => "Queries/Engine_SingleTurbo_UpdateExistingSingleTurboUpgrade.sql",
+            TurboUpgradeType.Twin => "Queries/Engine_TwinTurbo_UpdateExistingTwinTurboUpgrade.sql",
+            _ => throw new InvalidOperationException("Unsupported turbo mode")
+        };
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             EngineComboBox.ItemsSource = EngineList;
@@ -74,12 +81,26 @@ namespace Forza_DB_Editor
             if (EngineComboBox.SelectedItem is not Engine engine)
                 return;
 
-            double minScale = double.Parse(MinScaleBox.Text);
-            double powerMin = double.Parse(PowerMinScaleBox.Text);
-            double maxScale = double.Parse(PowerMaxScaleBox.Text);
-            double powerMax = double.Parse(PowerMaxScaleBox.Text);
-            double robScale = double.Parse(RobScaleBox.Text);
-            int price = int.Parse(PriceBox.Text);
+            double minScale, powerMin, maxScale, powerMax, robScale = 0;
+            int price = 0;
+
+
+            try
+            {
+                minScale = double.Parse(MinScaleBox.Text);
+                powerMin = double.Parse(PowerMinScaleBox.Text);
+                maxScale = double.Parse(MaxScaleBox.Text);
+                powerMax = double.Parse(PowerMaxScaleBox.Text);
+                robScale = double.Parse(RobScaleBox.Text);
+                price = int.Parse(PriceBox.Text);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Failed to parse inputs, all inputs should be decimal numbers.", "Warning",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            
 
             string tableName = Mode switch
             {
@@ -103,44 +124,69 @@ namespace Forza_DB_Editor
             }
 
             string selectedLevelText = ((ComboBoxItem)LevelComboBox.SelectedItem).Content.ToString();
-            int nextLevel = selectedLevelText switch
+            int selectedLevel = selectedLevelText switch
             {
                 "Street" => 1,
                 "Sport" => 2,
                 "Race" => 3,
                 _ => throw new InvalidOperationException("Unknown turbo level")
             };
-            int manufacturerId = reader.GetInt32(1);
+            int manufacturerId = 0;
 
-            // Insert new turbo
-            string insertSql = File.ReadAllText(InsertQuery);
-            using var insertCmd = new SQLiteCommand(insertSql, Connection);
-            insertCmd.Parameters.AddWithValue("@Id", nextId);
-            insertCmd.Parameters.AddWithValue("@EngineID", engine.EngineID);
-            insertCmd.Parameters.AddWithValue("@NextLevel", nextLevel);
-            insertCmd.Parameters.AddWithValue("@ManufacturerId", manufacturerId);
-            insertCmd.Parameters.AddWithValue("@Price", price);
-            insertCmd.Parameters.AddWithValue("@MaxScale", maxScale);
-            insertCmd.Parameters.AddWithValue("@PowerMaxScale", powerMax);
-            insertCmd.Parameters.AddWithValue("@MinScale", minScale);
-            insertCmd.Parameters.AddWithValue("@PowerMinScale", powerMin);
-            insertCmd.Parameters.AddWithValue("@RobScale", robScale);
+            bool rowExists = false;
+            string checkSql = @"
+                SELECT 1 FROM List_UpgradeEngineTurboSingle
+                WHERE EngineID = @EngineID AND Level = @Level
+                LIMIT 1";
 
-            insertCmd.ExecuteNonQuery();
+            using (var checkCmd = new SQLiteCommand(checkSql, Connection))
+            {
+                checkCmd.Parameters.AddWithValue("@EngineID", engine.EngineID);
+                checkCmd.Parameters.AddWithValue("@Level", selectedLevel);
+
+                using var checkReader = checkCmd.ExecuteReader();
+                rowExists = checkReader.Read(); // returns true if any row found
+            }
+
+            if (rowExists) // row found, update existing turbo for given Level
+            {
+                string updateSql = File.ReadAllText(UpdateQuery);
+                using var updateCmd = new SQLiteCommand(updateSql, Connection);
+                updateCmd.Parameters.AddWithValue("@EngineID", engine.EngineID);
+                updateCmd.Parameters.AddWithValue("@Level", selectedLevel);
+                updateCmd.Parameters.AddWithValue("@Price", price);
+                updateCmd.Parameters.AddWithValue("@MaxScale", maxScale);
+                updateCmd.Parameters.AddWithValue("@PowerMaxScale", powerMax);
+                updateCmd.Parameters.AddWithValue("@MinScale", minScale);
+                updateCmd.Parameters.AddWithValue("@PowerMinScale", powerMin);
+                updateCmd.Parameters.AddWithValue("@RobScale", robScale);
+
+                updateCmd.ExecuteNonQuery();
+            }
+            else // Insert new turbo
+            {                
+                string insertSql = File.ReadAllText(InsertQuery);
+                using var insertCmd = new SQLiteCommand(insertSql, Connection);
+                insertCmd.Parameters.AddWithValue("@Id", nextId);
+                insertCmd.Parameters.AddWithValue("@EngineID", engine.EngineID);
+                insertCmd.Parameters.AddWithValue("@NextLevel", selectedLevel);
+                insertCmd.Parameters.AddWithValue("@ManufacturerId", manufacturerId);
+                insertCmd.Parameters.AddWithValue("@Price", price);
+                insertCmd.Parameters.AddWithValue("@MaxScale", maxScale);
+                insertCmd.Parameters.AddWithValue("@PowerMaxScale", powerMax);
+                insertCmd.Parameters.AddWithValue("@MinScale", minScale);
+                insertCmd.Parameters.AddWithValue("@PowerMinScale", powerMin);
+                insertCmd.Parameters.AddWithValue("@RobScale", robScale);
+
+                insertCmd.ExecuteNonQuery();
+            }
 
             InsertSucceeded = true;
             this.DialogResult = true;
-
-            Debug.WriteLine("engine is " + engine.EngineID);
-            Debug.WriteLine("id is " + nextId);
-            Debug.WriteLine("level is " + nextLevel);
 
             MessageBox.Show("Turbo upgrade added successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
             this.Close();
         }
-
-
-
     }
 }

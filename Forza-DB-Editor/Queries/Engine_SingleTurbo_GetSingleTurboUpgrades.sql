@@ -1,3 +1,3 @@
-SELECT EngineID, ManufacturerId, Level, Price, MinScale, MaxScale, PowerMinScale, PowerMaxScale, RobScale
+SELECT EngineID, ManufacturerId, Level, Price, MinScale, PowerMinScale, MaxScale, PowerMaxScale, RobScale
 FROM List_UpgradeEngineTurboSingle
 WHERE EngineID = @EngineID

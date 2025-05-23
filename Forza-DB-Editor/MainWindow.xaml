@@ -191,7 +191,7 @@
               Margin="0,0,0,10">
                                 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Level" Binding="{Binding LevelText}" Width="Auto"/>
                                     <DataGridTextColumn Header="Min Scale" Binding="{Binding MinScale}" Width="Auto"/>
                                     <DataGridTextColumn Header="Power Min Scale" Binding="{Binding PowerMinScale}" Width="Auto"/>
                                     <DataGridTextColumn Header="Max Scale" Binding="{Binding MaxScale}" Width="Auto"/>
@@ -203,7 +203,7 @@
                                 
                             </DataGrid>
                             <Button x:Name="AddSingleTurboButton"
-Content="Create New Single Turbo Upgrade"
+Content="Add New/Edit Single Turbo Upgrade"
 Width="220"
 HorizontalAlignment="Left"
 Visibility="Collapsed"

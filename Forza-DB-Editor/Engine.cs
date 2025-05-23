@@ -16,6 +16,8 @@ namespace Forza_DB_Editor
     {
         public int EngineID { get; set; }
         public int Level { get; set; }
+        public string? LevelText { get; set; }
+
         public int ManufacturerID { get; set; }
         public int Price { get; set; }
 

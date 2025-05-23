@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection.PortableExecutable;
 using System.Windows;
 using System.Windows.Controls;
 using static Forza_DB_Editor.TurboUpgradeModal;
@@ -95,11 +96,35 @@ namespace Forza_DB_Editor
                 config.LastFilePath = filePath;
                 config.Save();
 
+                // Clear any previously loaded lists
+                carList.Clear();
+                engineList.Clear();
+                allEngineSwaps.Clear();
+                singleTurboUpgrades.Clear(); // if populated here
+
+                // Load everything fresh
+                LoadCars(currentConnection);
+                LoadEngines(currentConnection);
+                LoadEngineSwaps(currentConnection);
+
+                // Reset UI
+                CarListBox.ItemsSource = carList.OrderBy(c => c.FullName).ToList();
+                EngineListBox.ItemsSource = engineList.OrderBy(c => c.EngineName).ToList();
+                SingleTurboGrid.ItemsSource = null;
+                SingleTurboGrid.Items.Clear();
+
+                // Reset toggle panels
+                EngineSwapsPanel.Visibility = Visibility.Collapsed;
+                AddSingleTurboButton.Visibility = Visibility.Collapsed;
+                SingleTurboPanel.Visibility = Visibility.Collapsed;
+
                 this.Title = $"Forza DB Editor - {filePath}";
                 if (showMessage)
                 {
                     MessageBox.Show("Database successfully opened", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
+
+                
             }
             catch (Exception ex)
             {
@@ -150,6 +175,33 @@ namespace Forza_DB_Editor
         {
             Application.Current.Shutdown();
         }
+
+        private string GetLevelString(int level)
+        {
+            string levelText = "";
+            levelText = level switch
+            {
+                1 => "Street",
+                2 => "Sport",
+                3 => "Race",
+                _ => throw new InvalidOperationException("Unknown turbo level")
+            };
+            return levelText;
+        }
+
+        private int GetLevelInt(string level)
+        {
+            int levelInt = 0;
+            levelInt = level switch
+            {
+                "Street" => 1,
+                "Sport" => 2,
+                "Race" => 3,
+                _ => throw new InvalidOperationException("Unknown turbo level")
+            };
+            return levelInt;
+        }
+
 
         //---------------------//
         //  Car tab functions  //
@@ -217,6 +269,7 @@ namespace Forza_DB_Editor
                 ModelRearTrackOuter.Text = selectedCar.ModelRearTrackOuter.ToString();
 
                 // Hide engine swaps until the button is clicked
+                RefreshEngineSwapsForCar(selectedCar.Id);
                 EngineSwapsPanel.Visibility = Visibility.Collapsed;
                 ViewEngineSwapsButton.Content = "View/Edit Engine Swaps";
             }
@@ -426,7 +479,8 @@ namespace Forza_DB_Editor
                     PowerMinScale = reader.GetDouble(5),
                     MaxScale = reader.GetDouble(6),
                     PowerMaxScale = reader.GetDouble(7),
-                    RobScale = reader.GetDouble(8)
+                    RobScale = reader.GetDouble(8),
+                    LevelText = GetLevelString(reader.GetInt32(2))
                 });
             }
 

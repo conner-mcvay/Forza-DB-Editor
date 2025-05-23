@@ -33,6 +33,9 @@
     <None Update="Queries\Engine_GetEngines.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Queries\Engine_SingleTurbo_UpdateExistingSingleTurboUpgrade.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Queries\Engine_SingleTurbo_CreateNewSingleTurboUpgrade.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
