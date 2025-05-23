@@ -5,36 +5,42 @@ using System.Data;
 using System.Data.SQLite;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection.PortableExecutable;
 using System.Windows;
 using System.Windows.Controls;
+using static Forza_DB_Editor.TurboUpgradeModal;
 
 namespace Forza_DB_Editor
 {
     public partial class MainWindow : Window
     {
+        bool dev = Environment.GetEnvironmentVariable("env") == "dev"; 
+        //----------------//
+        //  constructors  // 
+        //----------------//
         private AppConfig config;
-        private string currentFilePath;
         private SQLiteConnection currentConnection;
         
         private List<Car> carList = new();
         private List<EngineSwap> allEngineSwaps = new();
+        private List<Engine> engineList = new();
+        private List<Turbo> singleTurboUpgrades = new();
+        
         private bool carsLoaded = false;
         private bool engineSwapsLoaded = false;
-        private void Exit_Click(object sender, RoutedEventArgs e)
-        {
-            Application.Current.Shutdown();
-        }
+        private bool singleTurboLoaded = false;
 
         public MainWindow()
         {
             InitializeComponent();
             config = AppConfig.Load();
 
-            /*
-            MessageBox.Show("Forza DB Editor will back up your selected database file before making any edits, but you are " +
-                "STRONGLY ENCOURAGED to create an additional backup on your own before making any edits. Invalid db files WILL BREAK " +
-                "THE GAME.", "Caution", MessageBoxButton.OK, MessageBoxImage.Warning);
-            */
+            if (!dev)
+            {
+                MessageBox.Show("Forza DB Editor will back up your selected database file before making any edits, but you are " +
+                    "STRONGLY ENCOURAGED to create an additional backup on your own before making any edits. Invalid db files WILL BREAK " +
+                    "THE GAME AND POSSIBLY CORRUPT YOUR PROFILE.", "Caution", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
 
             if (string.IsNullOrEmpty(config.LastFilePath) || !File.Exists(config.LastFilePath))
             {
@@ -43,6 +49,8 @@ namespace Forza_DB_Editor
             else
             {
                 OpenDatabase(config.LastFilePath); // no popup
+                BackupDatabaseFile(config.LastFilePath); // no popup
+                
             }
 
             // Try to load saved file
@@ -53,14 +61,157 @@ namespace Forza_DB_Editor
             else
             {
                 OpenDatabase(config.LastFilePath);
+                BackupDatabaseFile(config.LastFilePath); // no popup
+
             }
         }
+
+        //------------------// 
+        //  util functions  //
+        //------------------//
+        private void PromptToOpenFile()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "SQLite files (*.slt)|*.slt|All files (*.*)|*.*"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                BackupDatabaseFile(dialog.FileName);
+                OpenDatabase(dialog.FileName, showMessage: true);
+            }
+        }
+
+        private void OpenDatabase(string filePath, bool showMessage = false)
+        {
+            try
+            {
+                currentConnection = new SQLiteConnection($"Data Source={filePath};Version=3;");
+                currentConnection.Open();
+
+                using var cmd = new SQLiteCommand("SELECT MIN(Id) FROM Data_Car;", currentConnection);
+                var result = cmd.ExecuteScalar();
+
+                config.LastFilePath = filePath;
+                config.Save();
+
+                // Clear any previously loaded lists
+                carList.Clear();
+                engineList.Clear();
+                allEngineSwaps.Clear();
+                singleTurboUpgrades.Clear(); // if populated here
+
+                // Load everything fresh
+                LoadCars(currentConnection);
+                LoadEngines(currentConnection);
+                LoadEngineSwaps(currentConnection);
+
+                // Reset UI
+                CarListBox.ItemsSource = carList.OrderBy(c => c.FullName).ToList();
+                EngineListBox.ItemsSource = engineList.OrderBy(c => c.EngineName).ToList();
+                SingleTurboGrid.ItemsSource = null;
+                SingleTurboGrid.Items.Clear();
+
+                // Reset toggle panels
+                EngineSwapsPanel.Visibility = Visibility.Collapsed;
+                AddSingleTurboButton.Visibility = Visibility.Collapsed;
+                SingleTurboPanel.Visibility = Visibility.Collapsed;
+
+                this.Title = $"Forza DB Editor - {filePath}";
+                if (showMessage)
+                {
+                    MessageBox.Show("Database successfully opened", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
+                
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening database: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                PromptToOpenFile();
+            }
+        }
+
+        private void BackupDatabaseFile(string originalPath)
+        {
+            try
+            {
+                string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+                string backupDir = Path.Combine(exeDir, "backup");
+
+                if (!Directory.Exists(backupDir))
+                    Directory.CreateDirectory(backupDir);
+
+                string fileName = Path.GetFileNameWithoutExtension(originalPath);
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string destPath = Path.Combine(backupDir, $"{fileName}_{timestamp}.slt");
+
+                if (!dev)
+                {
+                    File.Copy(originalPath, destPath, overwrite: true);
+                }
+                System.Diagnostics.Debug.WriteLine($"Backup created at: {destPath}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to create backup: {ex.Message}", "Backup Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void SelectFile_Click(object sender, RoutedEventArgs e)
+        {
+            PromptToOpenFile();
+        }
+
+        private string LoadSqlQuery(string relativePath)
+        {
+            string basePath = AppDomain.CurrentDomain.BaseDirectory;
+            string fullPath = Path.Combine(basePath, relativePath);
+            return File.ReadAllText(fullPath);
+        }
+
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
+
+        private string GetLevelString(int level)
+        {
+            string levelText = "";
+            levelText = level switch
+            {
+                1 => "Street",
+                2 => "Sport",
+                3 => "Race",
+                _ => throw new InvalidOperationException("Unknown turbo level")
+            };
+            return levelText;
+        }
+
+        private int GetLevelInt(string level)
+        {
+            int levelInt = 0;
+            levelInt = level switch
+            {
+                "Street" => 1,
+                "Sport" => 2,
+                "Race" => 3,
+                _ => throw new InvalidOperationException("Unknown turbo level")
+            };
+            return levelInt;
+        }
+
+
+        //---------------------//
+        //  Car tab functions  //
+        //---------------------//
 
         private void LoadCars(SQLiteConnection conn)
         {
             carList.Clear();
 
-            string query = LoadSqlQuery("Queries/GetCars.sql");
+            string query = LoadSqlQuery("Queries/Car_GetCars.sql");
 
             using var cmd = new SQLiteCommand(query, conn);
             using var reader = cmd.ExecuteReader();
@@ -86,50 +237,6 @@ namespace Forza_DB_Editor
             CarListBox.ItemsSource = carList.OrderBy(c => c.FullName).ToList();
         }
 
-        private void PromptToOpenFile()
-        {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "SQLite files (*.slt)|*.slt|All files (*.*)|*.*"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                OpenDatabase(dialog.FileName, showMessage: true);
-            }
-        }
-
-        private void OpenDatabase(string filePath, bool showMessage = false)
-        {
-            try
-            {
-                currentConnection = new SQLiteConnection($"Data Source={filePath};Version=3;");
-                currentConnection.Open();
-
-                using var cmd = new SQLiteCommand("SELECT MIN(Id) FROM Data_Car;", currentConnection);
-                var result = cmd.ExecuteScalar();
-
-                currentFilePath = filePath;
-                config.LastFilePath = filePath;
-                config.Save();
-
-                this.Title = $"Forza DB Editor - {filePath}";
-                if (showMessage)
-                {
-                    MessageBox.Show("Database successfully opened", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error opening database: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                PromptToOpenFile();
-            }
-        }
-
-        private void SelectFile_Click(object sender, RoutedEventArgs e)
-        {
-            PromptToOpenFile();
-        }
 
         private void MainTabControl_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
@@ -138,6 +245,12 @@ namespace Forza_DB_Editor
                 LoadCars(currentConnection);
                 LoadEngineSwaps(currentConnection);
                 carsLoaded = true;
+            }
+
+            if (EngineTab.IsSelected && engineList.Count == 0)
+            {
+                LoadEngines(currentConnection);
+                EngineListBox.ItemsSource = engineList.OrderBy(c => c.EngineName).ToList();
             }
         }
 
@@ -156,6 +269,7 @@ namespace Forza_DB_Editor
                 ModelRearTrackOuter.Text = selectedCar.ModelRearTrackOuter.ToString();
 
                 // Hide engine swaps until the button is clicked
+                RefreshEngineSwapsForCar(selectedCar.Id);
                 EngineSwapsPanel.Visibility = Visibility.Collapsed;
                 ViewEngineSwapsButton.Content = "View/Edit Engine Swaps";
             }
@@ -176,18 +290,12 @@ namespace Forza_DB_Editor
             CarListBox.ItemsSource = filtered;
         }
 
-        private string LoadSqlQuery(string relativePath)
-        {
-            string basePath = AppDomain.CurrentDomain.BaseDirectory;
-            string fullPath = Path.Combine(basePath, relativePath);
-            return File.ReadAllText(fullPath);
-        }
 
         private void LoadEngineSwaps(SQLiteConnection conn)
         {
             allEngineSwaps.Clear();
 
-            string query = LoadSqlQuery("Queries/GetEngineSwaps.sql");
+            string query = LoadSqlQuery("Queries/Car_GetEngineSwaps.sql");
 
             using var cmd = new SQLiteCommand(query, conn);
             using var reader = cmd.ExecuteReader();
@@ -216,7 +324,7 @@ namespace Forza_DB_Editor
             engineSwapsLoaded = true;
         }
 
-        private void RefreshEngineSwapsForCar(int carId)
+        public void RefreshEngineSwapsForCar(int carId)
         {
             var filteredSwaps = allEngineSwaps
                 .Where(es => es.CarID == carId)
@@ -273,23 +381,160 @@ namespace Forza_DB_Editor
                 Owner = this,
                 CarList = carList,
                 SelectedCar = selectedCarInList,
-                AllEngineSwaps = allEngineSwaps
+                AllEngineSwaps = allEngineSwaps,
+                Connection = currentConnection
             };
 
-            modal.ShowDialog();
+            bool? result = modal.ShowDialog();
 
+            if (result == true && modal.InsertedCarID.HasValue)
+            {
+                LoadEngineSwaps(currentConnection);
+                RefreshEngineSwapsForCar(modal.InsertedCarID.Value);
+                EngineSwapsPanel.Visibility = Visibility.Visible;
+                ViewEngineSwapsButton.Content = "Hide Engine Swaps";
+            }
         }
 
-        private void DebugForceShow_Click(object sender, RoutedEventArgs e)
+        //-------------------------//
+        //  Engines tab functions  // 
+        //-------------------------//
+
+        private void LoadEngines(SQLiteConnection conn)
         {
-            EngineSwapsPanel.Visibility = Visibility.Visible;
+            engineList.Clear();
 
-            EngineSwapsGrid.ItemsSource = new List<object>
-    {
-        new { EngineName = "Test Engine", Level = 3, IsStock = false, Price = 5000 }
-    };
+            string query = LoadSqlQuery("Queries/Engine_GetEngines.sql"); 
 
-            EngineSwapsGrid.Items.Refresh();
+            using var cmd = new SQLiteCommand(query, conn);
+            using var reader = cmd.ExecuteReader();
+
+            var seen = new HashSet<int>();
+
+            while (reader.Read())
+            {
+                int engineId = reader.GetInt32(0);
+                string engineName = reader.GetString(1);
+
+                if (!seen.Contains(engineId))
+                {
+                    engineList.Add(new Engine
+                    {
+                        EngineID = engineId,
+                        EngineName = engineName
+                    });
+
+                    seen.Add(engineId);
+                }
+            }
         }
+
+        private void EngineSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string search = EngineSearchBox.Text.Trim();
+
+            var filtered = engineList
+                .Where(e => e.EngineName.Contains(search, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(e => e.EngineName)
+                .ToList();
+
+            EngineListBox.ItemsSource = filtered;
+        }
+
+        private void EngineListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Collapse turbo view if open
+            if (SingleTurboPanel.Visibility == Visibility.Visible)
+            {
+                SingleTurboPanel.Visibility = Visibility.Collapsed;
+                ViewSingleTurboButton.Content = "View/Edit Single Turbo Upgrades";
+            }
+
+            if (EngineListBox.SelectedItem is not Engine selected)
+                return;
+
+            EngineIDText.Text = selected.EngineID.ToString();
+            EngineNameText.Text = selected.EngineName;
+        }
+
+        private void LoadSingleTurboUpgrades(int engineId)
+        {
+            singleTurboUpgrades.Clear();
+
+            string sql = LoadSqlQuery("Queries/Engine_SingleTurbo_GetSingleTurboUpgrades.sql");
+
+            using var cmd = new SQLiteCommand(sql, currentConnection);
+            cmd.Parameters.AddWithValue("@EngineID", engineId);
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                singleTurboUpgrades.Add(new Turbo
+                {
+                    EngineID = engineId,
+                    ManufacturerID = reader.GetInt32(1),
+                    Level = reader.GetInt32(2),
+                    Price = reader.GetInt32(3),
+                    MinScale = reader.GetDouble(4),
+                    PowerMinScale = reader.GetDouble(5),
+                    MaxScale = reader.GetDouble(6),
+                    PowerMaxScale = reader.GetDouble(7),
+                    RobScale = reader.GetDouble(8),
+                    LevelText = GetLevelString(reader.GetInt32(2))
+                });
+            }
+
+            SingleTurboGrid.ItemsSource = null;
+            SingleTurboGrid.Items.Clear(); // optional, defensive
+            SingleTurboGrid.ItemsSource = singleTurboUpgrades;
+            SingleTurboGrid.Items.Refresh();
+        }
+
+        private void ViewSingleTurbo_Click(object sender, RoutedEventArgs e)
+        {
+            if (EngineListBox.SelectedItem is not Engine selectedEngine)
+            {
+                MessageBox.Show("Please select an engine first.", "No Engine Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Toggle logic
+            if (SingleTurboPanel.Visibility == Visibility.Visible)
+            {
+                SingleTurboPanel.Visibility = Visibility.Collapsed;
+                AddSingleTurboButton.Visibility = Visibility.Collapsed;
+                ViewSingleTurboButton.Content = "View/Edit Single Turbo Upgrades";
+                return;
+            }
+
+            // Load and show
+            LoadSingleTurboUpgrades(selectedEngine.EngineID);
+            SingleTurboPanel.Visibility = Visibility.Visible;
+            AddSingleTurboButton.Visibility = Visibility.Visible;
+            ViewSingleTurboButton.Content = "Hide Single Turbo Upgrades";
+        }
+
+        private void AddSingleTurbo_Click(object sender, RoutedEventArgs e)
+        {
+            if (EngineListBox.SelectedItem is not Engine selectedEngine)
+                return;
+
+            var modal = new TurboUpgradeModal
+            {
+                Owner = this,
+                Connection = currentConnection,
+                EngineList = engineList,
+                SelectedEngine = (Engine)EngineListBox.SelectedItem,
+                Mode = TurboUpgradeType.Single // or Twin
+            };
+
+            bool? result = modal.ShowDialog();
+
+            if (result == true && modal.InsertSucceeded)
+            {
+                LoadSingleTurboUpgrades(modal.SelectedEngine.EngineID);
+            }
+        }
+        
     }
 }

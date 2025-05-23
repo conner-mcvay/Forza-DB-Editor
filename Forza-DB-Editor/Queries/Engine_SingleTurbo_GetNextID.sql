@@ -1,0 +1,1 @@
+SELECT MAX(Id) + 1 FROM List_UpgradeEngineTurboSingle 
