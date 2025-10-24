@@ -15,10 +15,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Queries\Car_CheckManufacturerName.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Queries\Car_GetCars_fm3.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Queries\EngineSwap_CreateEngineSwap.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Queries\Car_GetCars.sql">
+    <None Update="Queries\Car_GetCars_fm4.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Queries\Car_GetEngineSwaps.sql">

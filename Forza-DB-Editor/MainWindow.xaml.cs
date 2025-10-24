@@ -210,31 +210,45 @@ namespace Forza_DB_Editor
         private void LoadCars(SQLiteConnection conn)
         {
             carList.Clear();
-
-            string query = LoadSqlQuery("Queries/Car_GetCars.sql");
-
-            using var cmd = new SQLiteCommand(query, conn);
-            using var reader = cmd.ExecuteReader();
-
-            while (reader.Read())
+            string query;
+            string checkMakeQuery = LoadSqlQuery("Queries/Car_CheckManufacturerName.sql");
+            using (var checkMakeCmd = new SQLiteCommand(checkMakeQuery, conn))
             {
-                carList.Add(new Car
-                {
-                    Id = reader.GetInt32(0),
-                    Year = reader.GetInt32(1),
-                    Make = reader.IsDBNull(2) ? null : reader.GetString(2),
-                    Model = reader.GetString(3),
-                    FullName = reader.GetString(4),
-                    FrontWheelDiameterIN = reader.GetInt32(5),
-                    FrontTireAspect = reader.GetInt32(6),
-                    ModelFrontTrackOuter = reader.IsDBNull(7) ? 0.0 : reader.GetDouble(7),
-                    RearWheelDiameterIN = reader.GetInt32(8),
-                    RearTireAspect = reader.GetInt32(9),
-                    ModelRearTrackOuter = reader.IsDBNull(10) ? 0.0 : reader.GetDouble(10),
-                });
-            }
+                long count = (long)checkMakeCmd.ExecuteScalar();
 
-            CarListBox.ItemsSource = carList.OrderBy(c => c.FullName).ToList();
+                if (count == 1)
+                {
+                    query = LoadSqlQuery("Queries/Car_GetCars_fm4.sql");
+                }
+                else
+                {
+                    query = LoadSqlQuery("Queries/Car_GetCars_fm3.sql");
+                }
+
+                
+                using var cmd = new SQLiteCommand(query, conn);
+                using var carsReader = cmd.ExecuteReader();
+
+                while (carsReader.Read())
+                {
+                    carList.Add(new Car
+                    {
+                        Id = carsReader.GetInt32(0),
+                        Year = carsReader.GetInt32(1),
+                        Make = carsReader.IsDBNull(2) ? null : carsReader.GetString(2),
+                        Model = carsReader.GetString(3),
+                        FullName = carsReader.GetString(4),
+                        FrontWheelDiameterIN = carsReader.GetInt32(5),
+                        FrontTireAspect = carsReader.GetInt32(6),
+                        ModelFrontTrackOuter = carsReader.IsDBNull(7) ? 0.0 : carsReader.GetDouble(7),
+                        RearWheelDiameterIN = carsReader.GetInt32(8),
+                        RearTireAspect = carsReader.GetInt32(9),
+                        ModelRearTrackOuter = carsReader.IsDBNull(10) ? 0.0 : carsReader.GetDouble(10),
+                    });
+                }
+
+                CarListBox.ItemsSource = carList.OrderBy(c => c.FullName).ToList();
+            }
         }
 
 
